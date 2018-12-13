@@ -1,5 +1,6 @@
 use std::io::Read;
 use std::fs::File;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 struct Claim {
@@ -26,22 +27,22 @@ fn main() {
     let size = f.read_to_string(&mut contents).expect("Error: Something went wrong reading the file");
     println!("main: size of text is {} bytes", size);
 
-    part1(&contents);
+    solution(&contents);
 }
 
-fn part1(input: &str) {
+fn solution(input: &str) {
 
     // initialize matrix
     let matrix: [[i32; MAX_X]; MAX_Y] = [[-1; MAX_X]; MAX_Y];
     let mut res_matrix: [[i32; MAX_X]; MAX_Y] = [[-1; MAX_X]; MAX_Y];
-    let mut pure_claim = 0; // claim that does not overlap
-    let mut is_overlapping = false;
+    let mut claim_overlap_map: HashMap<u32, bool> = HashMap::new();
 
     let mut count: u32 = 1;
     for line in input.lines() {
         let claim_str: String = line.parse().expect("Unable to parse claim");
         let claim = parse_claim(count, &claim_str);
         println!("part1: found claim: {:?}, ", claim);
+        let mut is_overlapping = false;
         count += 1;
 
         for (y, row) in matrix.iter().enumerate() {
@@ -53,6 +54,8 @@ fn part1(input: &str) {
                     (y as u32) >= claim.origin_y &&
                     (y as u32) < claim.end_y {
                     res_matrix[y][x] = if res_matrix[y][x] != -1 {
+                        let previous_claim = res_matrix[y][x] as u32;
+                        claim_overlap_map.insert(previous_claim, true);
                         is_overlapping = true;
                         0 // 0 means multiple claims in one spot
                     } else {
@@ -64,7 +67,7 @@ fn part1(input: &str) {
 
         // save if not overlapping
         if !is_overlapping {
-            pure_claim = claim.id
+            claim_overlap_map.insert(claim.id, false);
         }
     }
 
@@ -79,8 +82,12 @@ fn part1(input: &str) {
     }
 
     println!("part1: overlaps: {}", overlaps);
-    println!("part1: pure claim: {}", pure_claim);
 
+    for (claim_id, is_overlap) in &claim_overlap_map {
+        if !is_overlap {
+            println!("part2: claim {} does not overlap :)", claim_id);
+        }
+    }
 }
 
 fn parse_claim(id: u32, claim_str: &str) -> Claim {
@@ -97,14 +104,9 @@ fn parse_claim(id: u32, claim_str: &str) -> Claim {
         .collect();
 
     let origin_x = (origins.get(0).unwrap() as &str).parse::<u32>().unwrap();
-    println!("origin_x is: {}", origin_x);
     let origin_y = (origins.get(1).unwrap() as &str).parse::<u32>().unwrap();
-    println!("origin_y is: {}", origin_y);
     let width = (size.get(0).unwrap() as &str).parse::<u32>().unwrap();
-    println!("width is: {}", width);
     let height = (size.get(1).unwrap() as &str).parse::<u32>().unwrap();
-    println!("height is: {}", height);
-
     // calculate end x, y
     let end_x = origin_x + width;
     let end_y = origin_y + height;
